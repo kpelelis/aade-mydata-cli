@@ -203,7 +203,7 @@ The client unwraps up to three layers for validation, errors, pagination and JSO
 | `invoiceSummary/totalNetValue`, `totalVatAmount`, `totalGrossValue` | `totals.net`, `totals.vat`, `totals.gross` |
 | Other summary amounts | `totals.withheld`, `fees`, `stampDuty`, `otherTaxes`, `deductions` |
 
-The projection does not include invoice lines or every optional field. Missing values become null; identifiers and amounts stay strings. `kind` and `direction` are CLI metadata. Non-invoice records use `kind` and a `fields` object with arrays for every XML child name. Use raw XML or `--format json` if you need namespaces, attributes or all nested details. See [AGENT_GUIDE.md](AGENT_GUIDE.md) for pagination and aggregation rules.
+The projection does not include invoice lines or every optional field. Missing values become null; identifiers and amounts stay strings. `kind` and `source` are CLI metadata, not XML invoice fields. `source` identifies `received` or `transmitted` retrieval; a transmitted document can be a manually reported foreign purchase and must not automatically be treated as revenue. Non-invoice records use `kind` and a `fields` object with arrays for every XML child name. Use raw XML or `--format json` if you need namespaces, attributes or all nested details. See [AGENT_GUIDE.md](AGENT_GUIDE.md) for pagination and aggregation rules.
 
 ## Offline schema validation
 

@@ -5,7 +5,7 @@ use --format json or raw XML when every XML detail matters.
 """
 from .api import local_name, continuation
 
-SCHEMA_VERSION = "1.0"
+SCHEMA_VERSION = "2.0"
 
 
 def child(node, name):
@@ -34,7 +34,7 @@ def invoice_record(node, command):
     header, summary = child(node, "invoiceHeader"), child(node, "invoiceSummary")
     return {
         "kind": "invoice",
-        "direction": "received" if command == "request-docs" else "issued",
+        "source": {"request-docs": "received", "request-transmitted-docs": "transmitted"}[command],
         "mark": value(node, "mark"), "uid": value(node, "uid"),
         "cancellationMark": value(node, "cancelledByMark"),
         "issueDate": value(header, "issueDate"), "series": value(header, "series"),

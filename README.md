@@ -4,7 +4,7 @@ For namespaces, nested fields and request/response examples, see [XML_REFERENCE.
 
 Python 3.10+ command-line client for the 18 operations listed in AADE's myDATA ERP API v2.0.2. No runtime dependencies. Submissions use your XML files; responses remain raw XML by default. This is an API transport client, not an invoice-generation or accounting system.
 
-**Early-stage software (0.2.0).** Read-only production document retrieval has been exercised. Submission commands have local mock-server coverage but have not been validated against live AADE. Response validation is structural, not full XSD/business-rule validation.
+**Early-stage software (0.3.0).** Read-only production document retrieval has been exercised. Submission commands have local mock-server coverage but have not been validated against live AADE. Response validation is structural, not full XSD/business-rule validation.
 
 For LLM agents, start with [AGENT_GUIDE.md](AGENT_GUIDE.md), `mydata-readonly schema`, and `--format records`.
 
@@ -137,7 +137,7 @@ mydata-readonly request-docs --env test --mark 0 --all-pages --format records --
 
 `schema` works offline without credentials. It describes all 18 API operations, HTTP methods and side effects, argument JSON Schemas, required inputs, mutually exclusive options, wire parameter names, policy rules, response roots, output formats and exit codes. Numeric/date relationships are listed as runtime constraints where JSON Schema cannot express them. No environment values or credentials are included.
 
-`--format records` provides a version 1.0 envelope: `command`, `environment`, `httpStatus`, `success`, `exitCode`, `complete`, `pagination`, `errors`, and `records`. Arrays stay arrays even when empty. Invoice records expose `mark`, `uid`, `issueDate`, `series`, `number`, `invoiceType`, `currency`, `issuer`, `counterpart`, `totals`, and `cancellationMark`. Missing values are null. MARKs, VAT identifiers and all monetary values remain strings; use decimal arithmetic.
+`--format records` provides a version 2.0 envelope: `command`, `environment`, `httpStatus`, `success`, `exitCode`, `complete`, `pagination`, `errors`, and `records`. Arrays stay arrays even when empty. Invoice records expose `source`, `mark`, `uid`, `issueDate`, `series`, `number`, `invoiceType`, `currency`, `issuer`, `counterpart`, `totals`, and `cancellationMark`. `source` is `received` or `transmitted`, identifying the retrieval endpoint only. It does not classify a document as revenue or expense: manually reported foreign purchases may be transmitted. Reconcile expense-book rows against received and, where needed, transmitted documents. The old `direction` field was removed in records schema 2.0. Missing values are null. MARKs, VAT identifiers and all monetary values remain strings; use decimal arithmetic.
 
 Other record kinds preserve XML field names under `fields`, with every field value represented as an array. This includes cancellation/classification collections and VAT/E3/income rows. Do not interpret these as individual invoices or silently drop them. The records view is a convenience projection; use `--format json` or XML for full invoice details and namespaces. Unknown XML roots, unexpected document collections, malformed status codes and invalid continuation tokens cause nonzero exits instead of empty success.
 

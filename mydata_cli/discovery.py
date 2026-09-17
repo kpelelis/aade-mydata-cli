@@ -1,6 +1,7 @@
 """Generate discovery metadata from the same argparse definitions used at runtime."""
 import argparse
 from . import __version__
+from .records import SCHEMA_VERSION
 from .contracts import SUBMISSIONS, READS, PAGED, PARAMS, EXPECTED_ROOTS
 
 
@@ -92,7 +93,10 @@ def command_schema(parser, selected=None):
                       "5": "network failure or incomplete pagination", "6": "read-only policy refusal",
                       "130": "interrupted; reconcile any possible submission"},
         "outputFormats": {"xml": "Original response bytes", "json": "Namespace-preserving XML tree",
-                          "records": "Version 1.0 envelope with records array; identifiers and amounts stay strings"},
+                          "records": "Version 2.0 envelope with records array; identifiers and amounts stay strings"},
+        "recordsSchemaVersion": SCHEMA_VERSION,
+        "invoiceSource": {"received": "Retrieved via RequestDocs", "transmitted": "Retrieved via RequestTransmittedDocs",
+                          "meaning": "Retrieval source only, not income/expense or issuer/recipient role."},
         "recordsEnvelope": {"schemaVersion": "string", "command": "string", "environment": "string",
                             "httpStatus": "integer|null", "success": "boolean", "exitCode": "integer",
                             "complete": "boolean", "pagination": {"hasMore": "boolean", "next": "object|null"},

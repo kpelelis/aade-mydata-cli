@@ -178,9 +178,31 @@ class RecordsTests(unittest.TestCase):
         self.assertEqual(invoice['issuer']['vatNumber'], '000000000')
         self.assertIsNone(invoice['issuer']['name'])
         self.assertIsNone(invoice['cancellationMark'])
-        self.assertEqual(invoice['direction'], 'received')
+        self.assertEqual(invoice['source'], 'received')
+        self.assertNotIn('direction', invoice)
         self.assertEqual(result['records'][1]['kind'], 'cancelledInvoicesDoc')
         self.assertIsInstance(result['records'][1]['fields']['cancelledInvoice'], list)
+
+    def test_transmitted_foreign_purchase_uses_source_not_economic_direction(self):
+        # Entirely synthetic; a manually reported purchase can be transmitted.
+        root = ET.fromstring(INVOICE)
+        ns = {'inv': 'http://www.aade.gr/myDATA/invoice/v1.0'}
+        root.find('.//inv:invoiceType', ns).text = '14.1'
+        root.find('.//inv:issuer/inv:country', ns).text = 'NL'
+        result = envelope(root, 'request-transmitted-docs', 'test', 200, 0, [])
+        purchase = result['records'][0]
+        self.assertEqual(result['schemaVersion'], '2.0')
+        self.assertEqual(purchase['source'], 'transmitted')
+        self.assertEqual(purchase['invoiceType'], '14.1')
+        self.assertEqual(purchase['totals']['gross'], '124.00')
+        self.assertNotIn('direction', purchase)
+        self.assertNotIn('expense', purchase)
+        self.assertNotIn('income', purchase)
+
+    def test_discovery_reports_records_contract_version_and_source_semantics(self):
+        data = command_schema(parser())
+        self.assertEqual(data['recordsSchemaVersion'], '2.0')
+        self.assertIn('transmitted', data['invoiceSource'])
 
     def test_empty_records_and_generic_rows_are_always_arrays(self):
         for payload in [b'<RequestedDoc/>', b'<RequestedVatInfo><VatInfo><Mark>0001</Mark><Vat301>1.20</Vat301></VatInfo></RequestedVatInfo>']:
