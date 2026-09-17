@@ -1,5 +1,6 @@
 """HTTP transport and lossless XML inspection helpers."""
 from dataclasses import dataclass
+import os
 import socket
 import http.client
 import time
@@ -9,6 +10,9 @@ import urllib.request
 from xml.etree import ElementTree as ET
 from xml.parsers import expat
 
+from .contracts import READ_ENDPOINTS, SUBMISSIONS
+from . import __version__
+
 BASE_URLS = {
     "test": "https://mydataapidev.aade.gr",
     "production": "https://mydatapi.aade.gr/myDATA",
@@ -17,6 +21,17 @@ BASE_URLS = {
 
 class ClientError(Exception):
     """An actionable client-side or protocol error."""
+
+
+class PolicyError(ClientError):
+    """A local policy forbids the requested network operation."""
+
+
+def environment_read_only():
+    value = os.getenv("MYDATA_READ_ONLY", "").strip().lower()
+    if value not in ("", "0", "false", "1", "true"):
+        raise PolicyError("MYDATA_READ_ONLY must be 1/true or 0/false.")
+    return value in ("1", "true")
 
 
 @dataclass(frozen=True)
@@ -33,19 +48,26 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 
 class Client:
     def __init__(self, environment, user_id, subscription_key, timeout=30, retries=2,
-                 opener=None, sleep=time.sleep):
+                 opener=None, sleep=time.sleep, read_only=True):
+        self.read_only = read_only
         self.base_url = BASE_URLS[environment]
         for value in (user_id, subscription_key):
             if not value or any(ord(c) < 32 or ord(c) > 126 for c in value):
                 raise ClientError("Credentials must be nonempty printable ASCII header values.")
         self.headers = {"aade-user-id": user_id,
                         "ocp-apim-subscription-key": subscription_key,
-                        "Accept": "application/xml", "User-Agent": "aade-mydata-cli/0.1.0"}
+                        "Accept": "application/xml", "User-Agent": "aade-mydata-cli/" + __version__}
         self.timeout, self.retries = timeout, retries
         self.opener = opener or urllib.request.build_opener(NoRedirect())
         self.sleep = sleep
 
     def request(self, method, endpoint, params, body=None):
+        safe_read = method == "GET" and endpoint in READ_ENDPOINTS and body is None
+        if (self.read_only or environment_read_only()) and not safe_read:
+            raise PolicyError("Read-only policy blocks this operation before network access.")
+        allowed = safe_read or (method == "POST" and endpoint in {v[0] for v in SUBMISSIONS.values()})
+        if not allowed:
+            raise PolicyError("Unknown endpoint or HTTP method; network access blocked.")
         url = build_url(self.base_url, endpoint, params)
         headers = dict(self.headers)
         if body is not None:
@@ -118,11 +140,14 @@ def continuation(root):
         return None
     if len(tokens) != 1:
         raise ClientError("Response contains multiple continuation tokens.")
+    if tokens[0] not in list(root):
+        raise ClientError("Continuation token must be a direct response child.")
+    names = [local_name(c.tag) for c in tokens[0]]
+    if sorted(names) != ["nextPartitionKey", "nextRowKey"]:
+        raise ClientError("Continuation token must contain each key exactly once.")
     fields = {local_name(c.tag): c.text or "" for c in tokens[0]}
     pair = (fields.get("nextPartitionKey", ""), fields.get("nextRowKey", ""))
-    if pair == ("", ""):
-        return None
-    if not all(pair):
+    if not all(value.strip() for value in pair):
         raise ClientError("Response contains an incomplete continuation token.")
     return pair
 

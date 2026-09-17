@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Synthetic mixed batch result. Not a response from a real account. -->
+<ResponseDoc>
+  <response><index>1</index><invoiceMark>123456789</invoiceMark><statusCode>Success</statusCode></response>
+  <response>
+    <index>2</index>
+    <errors><error><message>Synthetic validation failure</message><code>202</code></error></errors>
+    <statusCode>ValidationError</statusCode>
+  </response>
+</ResponseDoc>

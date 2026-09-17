@@ -1,6 +1,12 @@
 # AADE myDATA CLI
 
+For namespaces, nested fields and request/response examples, see [XML_REFERENCE.md](XML_REFERENCE.md).
+
 Python 3.10+ command-line client for the 18 operations listed in AADE's myDATA ERP API v2.0.2. No runtime dependencies. Submissions use your XML files; responses remain raw XML by default. This is an API transport client, not an invoice-generation or accounting system.
+
+**Early-stage software (0.2.0).** Read-only production document retrieval has been exercised. Submission commands have local mock-server coverage but have not been validated against live AADE. Response validation is structural, not full XSD/business-rule validation.
+
+For LLM agents, start with [AGENT_GUIDE.md](AGENT_GUIDE.md), `mydata-readonly schema`, and `--format records`.
 
 ## Install and first request
 
@@ -70,20 +76,21 @@ mydata request-docs --mark 0 --dry-run
 mydata send-invoices --file examples/invoice.xml --dry-run
 
 # Both ISO dates and DD/MM/YYYY are accepted; wire dates use DD/MM/YYYY.
-mydata request-my-income --date-from 2026-09-01 --date-to 2026-09-30 --format json
+mydata-readonly request-my-income --date-from 2026-09-01 --date-to 2026-09-30 --format records
 mydata request-vat-info --date-from 01/09/2026 --date-to 30/09/2026 --grouped-per-day true
 
 # A single raw response, suitable for your XML tooling.
 mydata request-transmitted-docs --mark 0 --output transmitted.xml
 
-# Submit your completed XML file, or use --file - to read standard input.
-mydata send-invoices --file invoice.xml --output submission-response.xml
-mydata send-income-classification --file income.xml
-mydata send-expenses-classification --file expenses.xml
-mydata send-payments-method --file payments.xml
+# Explicit write opt-in is needed. These commands CHANGE remote records.
+# Do not use in read-only tasks. --file - reads standard input.
+mydata send-invoices --allow-writes --file invoice.xml --output submission-response.xml
+mydata send-income-classification --allow-writes --file income.xml
+mydata send-expenses-classification --allow-writes --file expenses.xml
+mydata send-payments-method --allow-writes --file payments.xml
 
 # Cancellation changes the selected environment's records.
-mydata cancel-invoice --mark 123456789
+mydata cancel-invoice --allow-writes --mark 123456789
 mydata get-delivery-note-status --mark 123456789
 mydata request-group-qr-details --group-id 'your-group-id'
 ```
@@ -107,7 +114,32 @@ mydata request-docs --mark 0 --next-partition-key 'partition' --next-row-key 'ro
   --all-pages --page-dir received-pages-resumed
 ```
 
-`--all-pages` requires raw XML and `--page-dir`; it cannot be combined with `--output` or JSON formatting. Files are paged separately instead of concatenating multiple XML documents into an invalid XML file.
+`--all-pages` requires `--page-dir` and cannot be combined with `--output`. With `--format records` or `--format json`, each raw XML page also gets a JSON file referenced by `dataFile` in the manifest. Files are paged separately instead of concatenating multiple XML documents into an invalid XML file.
+
+## Read-only enforcement
+
+Every invocation defaults to read-only. All POST operations require an explicit `--allow-writes`; there is no environment variable that automatically enables writes. `--read-only` makes the policy explicit.
+
+For agent tasks, prefer the installed **`mydata-readonly`** executable. It forces the lock for the process, even if `--allow-writes` is supplied. Alternatively, run `MYDATA_READ_ONLY=1 mydata ...`. The environment lock accepts `1`/`true`, rejects invalid values, and takes precedence over command flags. A lock value of `0`/`false` does not enable writes by itself.
+
+The HTTP transport independently enforces an allowlist of known GET operations with no request body. Unknown endpoints, GET requests to write endpoints, and non-GET methods are blocked under read-only policy. Offline `--dry-run` previews remain available and never send requests. Policy refusal exits with code 6.
+
+This is an application-level restriction. An agent with arbitrary shell/code access can alter code or environment; use process/tool isolation if you need a security boundary beyond this CLI. AADE credentials themselves are not made read-only by this setting.
+
+## Agent records and discovery
+
+```sh
+mydata-readonly schema
+mydata-readonly schema --command request-docs
+mydata-readonly request-docs --env test --mark 0 --format records
+mydata-readonly request-docs --env test --mark 0 --all-pages --format records --page-dir new-export
+```
+
+`schema` works offline without credentials. It describes all 18 API operations, HTTP methods and side effects, argument JSON Schemas, required inputs, mutually exclusive options, wire parameter names, policy rules, response roots, output formats and exit codes. Numeric/date relationships are listed as runtime constraints where JSON Schema cannot express them. No environment values or credentials are included.
+
+`--format records` provides a version 1.0 envelope: `command`, `environment`, `httpStatus`, `success`, `exitCode`, `complete`, `pagination`, `errors`, and `records`. Arrays stay arrays even when empty. Invoice records expose `mark`, `uid`, `issueDate`, `series`, `number`, `invoiceType`, `currency`, `issuer`, `counterpart`, `totals`, and `cancellationMark`. Missing values are null. MARKs, VAT identifiers and all monetary values remain strings; use decimal arithmetic.
+
+Other record kinds preserve XML field names under `fields`, with every field value represented as an array. This includes cancellation/classification collections and VAT/E3/income rows. Do not interpret these as individual invoices or silently drop them. The records view is a convenience projection; use `--format json` or XML for full invoice details and namespaces. Unknown XML roots, unexpected document collections, malformed status codes and invalid continuation tokens cause nonzero exits instead of empty success.
 
 ## Environments, output and failures
 
@@ -130,6 +162,7 @@ mydata request-docs --mark 0 --next-partition-key 'partition' --next-row-key 'ro
 | 3 | HTTP failure or malformed/unexpected response |
 | 4 | AADE business failure, including HTTP 200 partial batch failures |
 | 5 | Network failure or incomplete pagination |
+| 6 | Read-only policy blocked the operation |
 | 130 | Interrupted; a submission might already have reached AADE |
 
 ## Scope and specification notes
@@ -143,7 +176,7 @@ Specific discrepancies are handled explicitly:
 3. VAT/E3 tables describe continuation keys when `GroupedPerDay=false`, but the following prose says they are ignored in that case. The CLI forwards your choice and follows continuation tokens actually returned. Verify the behavior against your account before depending on a large export.
 4. The official classification namespaces contain `Classificaton` (without the second “i”). This spelling is intentional in the client.
 
-The CLI validates query dates, identifiers, option combinations, XML well-formedness and the submission root/namespace. It rejects DTDs and entity declarations. It does **not** perform full XSD validation, calculate taxes, populate missing fields, or enforce the full invoice/delivery lifecycle business rules. AADE performs those checks. Author payloads using the published schemas or an existing ERP exporter. Output XML may contain confidential business data.
+The CLI validates query dates, identifiers, option combinations, XML well-formedness, the submission root/namespace, expected response root names, response statuses, document collection structure, and continuation-token shape. It accepts the documented delivery-status root-name variants. This is not complete response schema validation. It rejects DTDs and entity declarations. It does **not** perform full XSD validation, calculate taxes, populate missing fields, or enforce the full invoice/delivery lifecycle business rules. AADE performs those checks. Author payloads using the published schemas or an existing ERP exporter. Output XML may contain confidential business data.
 
 ## Development and verification
 
@@ -151,8 +184,12 @@ The CLI validates query dates, identifiers, option combinations, XML well-formed
 python3 -m unittest discover -s tests -v
 ```
 
-Tests exercise all commands, exact parameter casing and URL encoding, XML roots, date/argument validation, credential handling, HTTP-200 business failures, error response retention, large identifier preservation, retries, redirect blocking, and pagination against a local HTTP server. No credentials or AADE connections are needed. Authenticated sandbox verification remains a separate step.
+Tests exercise all commands, exact parameter casing and URL encoding, XML roots, date/argument validation, credential handling, HTTP-200 business failures, error response retention, large identifier preservation, retries, redirect blocking, and pagination against a local HTTP server. No credentials or AADE connections are needed. Live tests must be explicitly scoped and read-only by default. Do not turn real API responses into test fixtures.
 
 ## Repository privacy
 
 Only source code, tests, documentation and synthetic XML examples belong in this repository. Credentials, API responses and business exports are local data and must not be committed. The ignore rules exclude XML outside `examples/`, JSON, CSV, spreadsheets, logs and environment files. Review the staged diff before every push; ignore rules do not remove files already tracked by Git. All example identities are fictional placeholders.
+
+## License
+
+MIT; see [LICENSE](LICENSE).

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Synthetic structural example, not an accounting recommendation or a live payload. -->
+<ExpensesClassificationsDoc xmlns="https://www.aade.gr/myDATA/expensesClassificaton/v1.0">
+  <expensesInvoiceClassification>
+    <invoiceMark>123456789</invoiceMark>
+    <invoicesExpensesClassificationDetails>
+      <lineNumber>1</lineNumber>
+      <expensesClassificationDetailData>
+        <classificationCategory>category2_1</classificationCategory>
+        <amount>100.00</amount>
+      </expensesClassificationDetailData>
+    </invoicesExpensesClassificationDetails>
+  </expensesInvoiceClassification>
+</ExpensesClassificationsDoc>

@@ -1,0 +1,3 @@
+include LICENSE README.md AGENT_GUIDE.md XML_REFERENCE.md CHANGELOG.md
+recursive-include examples *.xml
+recursive-include tests *.py

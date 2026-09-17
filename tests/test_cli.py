@@ -147,9 +147,9 @@ class TransportTests(unittest.TestCase):
         for method, count in [('GET', 3), ('POST', 1)]:
             opener = Mock()
             opener.open.side_effect = URLError('secret-do-not-log')
-            client = Client('test', 'user', 'key', opener=opener, sleep=Mock())
+            client = Client('test', 'user', 'key', opener=opener, sleep=Mock(), read_only=False)
             with self.assertRaises(ClientError) as cm:
-                client.request(method, 'CancelInvoice', {'mark': '1'})
+                client.request(method, 'RequestDocs' if method == 'GET' else 'CancelInvoice', {'mark': '1'})
             self.assertEqual(opener.open.call_count, count)
             self.assertNotIn('secret', str(cm.exception))
 
@@ -202,7 +202,7 @@ class IntegrationTests(unittest.TestCase):
     def setUp(self):
         self.requests.clear()
         self.responses.clear()
-        self.env = patch.dict(os.environ, {'MYDATA_USER_ID': 'test-user', 'MYDATA_SUBSCRIPTION_KEY': 'test-key'})
+        self.env = patch.dict(os.environ, {'MYDATA_USER_ID': 'test-user', 'MYDATA_SUBSCRIPTION_KEY': 'test-key', 'MYDATA_READ_ONLY': '0'})
         self.base = patch.dict(BASE_URLS, {'test': f'http://127.0.0.1:{self.server.server_port}'})
         self.env.start()
         self.base.start()
@@ -215,7 +215,7 @@ class IntegrationTests(unittest.TestCase):
             data = b'<InvoicesDoc xmlns="http://www.aade.gr/myDATA/invoice/v1.0"/>'
             path.write_bytes(data)
             self.responses.append((200, FAILURE))
-            code, out, err = invoke(['send-invoices', '--file', str(path)])
+            code, out, err = invoke(['send-invoices', '--allow-writes', '--file', str(path)])
         self.assertEqual(code, 4)
         self.assertEqual(out, FAILURE)
         method, url, headers, body = self.requests[0]
@@ -259,13 +259,13 @@ class IntegrationTests(unittest.TestCase):
         self.responses.append((200, SUCCESS))
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / 'response.xml'
-            code, out, _ = invoke(['cancel-invoice', '--mark', '1', '--output', str(path)])
+            code, out, _ = invoke(['cancel-invoice', '--allow-writes', '--mark', '1', '--output', str(path)])
             self.assertEqual((code, out, path.read_bytes()), (0, b'', SUCCESS))
             self.assertEqual(path.stat().st_mode & 0o777, 0o600)
 
     def test_cancel_no_retry_on_503(self):
         self.responses.append((503, b'Unavailable'))
-        self.assertEqual(invoke(['cancel-invoice', '--mark', '1'])[0], 3)
+        self.assertEqual(invoke(['cancel-invoice', '--allow-writes', '--mark', '1'])[0], 3)
         self.assertEqual(len(self.requests), 1)
 
 if __name__ == '__main__':

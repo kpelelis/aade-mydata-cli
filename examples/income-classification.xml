@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Synthetic structural example. Do not submit these identifiers or amounts. -->
+<IncomeClassificationsDoc xmlns="https://www.aade.gr/myDATA/incomeClassificaton/v1.0">
+  <incomeInvoiceClassification>
+    <invoiceMark>123456789</invoiceMark>
+    <invoicesIncomeClassificationDetails>
+      <lineNumber>1</lineNumber>
+      <incomeClassificationDetailData>
+        <classificationType>E3_561_001</classificationType>
+        <classificationCategory>category1_1</classificationCategory>
+        <amount>100.00</amount>
+      </incomeClassificationDetailData>
+    </invoicesIncomeClassificationDetails>
+  </incomeInvoiceClassification>
+</IncomeClassificationsDoc>
