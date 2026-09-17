@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Illustrative only. Replace fictional VAT numbers and invoice data before use. -->
+<InvoicesDoc xmlns="http://www.aade.gr/myDATA/invoice/v1.0"
+             xmlns:ic="https://www.aade.gr/myDATA/incomeClassificaton/v1.0">
+  <invoice>
+    <issuer><vatNumber>000000000</vatNumber><country>GR</country><branch>0</branch></issuer>
+    <counterpart><vatNumber>000000001</vatNumber><country>GR</country><branch>0</branch></counterpart>
+    <invoiceHeader>
+      <series>TEST</series><aa>1</aa><issueDate>2026-09-17</issueDate>
+      <invoiceType>1.1</invoiceType><currency>EUR</currency>
+    </invoiceHeader>
+    <paymentMethods><paymentMethodDetails><type>5</type><amount>124.00</amount></paymentMethodDetails></paymentMethods>
+    <invoiceDetails>
+      <lineNumber>1</lineNumber><netValue>100.00</netValue><vatCategory>1</vatCategory><vatAmount>24.00</vatAmount>
+      <incomeClassification><ic:classificationType>E3_561_001</ic:classificationType><ic:classificationCategory>category1_1</ic:classificationCategory><ic:amount>100.00</ic:amount></incomeClassification>
+    </invoiceDetails>
+    <invoiceSummary>
+      <totalNetValue>100.00</totalNetValue><totalVatAmount>24.00</totalVatAmount>
+      <totalWithheldAmount>0.00</totalWithheldAmount><totalFeesAmount>0.00</totalFeesAmount>
+      <totalStampDutyAmount>0.00</totalStampDutyAmount><totalOtherTaxesAmount>0.00</totalOtherTaxesAmount>
+      <totalDeductionsAmount>0.00</totalDeductionsAmount><totalGrossValue>124.00</totalGrossValue>
+      <incomeClassification><ic:classificationType>E3_561_001</ic:classificationType><ic:classificationCategory>category1_1</ic:classificationCategory><ic:amount>100.00</ic:amount></incomeClassification>
+    </invoiceSummary>
+  </invoice>
+</InvoicesDoc>

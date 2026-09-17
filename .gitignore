@@ -1,0 +1,31 @@
+# Local credentials and environments
+.env
+.env.*
+.venv/
+venv/
+*.pem
+*.key
+*.p12
+*.pfx
+credentials*
+secrets*
+
+# API responses, exports and local work
+*.xml
+!examples/*.xml
+*.json
+*.jsonl
+*.csv
+*.xlsx
+*.log
+work/
+outputs/
+*-pages/
+
+# Python build products
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.DS_Store
