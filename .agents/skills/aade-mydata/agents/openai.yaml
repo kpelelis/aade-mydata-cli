@@ -1,0 +1,4 @@
+interface:
+  display_name: "AADE myDATA"
+  short_description: "Read-only invoices and company expense analysis"
+  default_prompt: "Use $aade-mydata to retrieve and reconcile my company expenses for this year using read-only access."

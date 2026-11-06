@@ -8,6 +8,10 @@ Python 3.10+ command-line client for the 18 operations listed in AADE's myDATA E
 
 For LLM agents, start with [AGENT_GUIDE.md](AGENT_GUIDE.md), `mydata-readonly schema`, and `--format records`.
 
+## Agent skills
+
+This repository includes the read-only AADE reporting skill for [Codex](.agents/skills/aade-mydata/SKILL.md) and [Claude Code](.claude/skills/aade-mydata/SKILL.md). Each copy includes the expense-reconciliation reference and a launcher that prefers this checkout's `.venv/bin/mydata-readonly`, then an installed `mydata-readonly` on PATH. Install the CLI as shown below, make credentials available to the agent process without committing them, and select `--env test` or `--env production` explicitly. Invoke `$aade-mydata` in Codex or `/aade-mydata` in Claude Code.
+
 ## Install and first request
 
 Run from this directory:
